@@ -8,6 +8,8 @@
 #include <string>
 #include <vector>
 #include <cstdio>
+#include <cstdlib>
+#include <ctime>
 
 // Include the Mode header
 #include "Mode.hpp"
@@ -18,10 +20,11 @@
 class ModeTest : public ::testing::Test {
 protected:
     void SetUp() override {
-        // Create a temporary test file
-        // Note: This uses /tmp which is Unix-specific. For Windows compatibility,
-        // consider using std::tmpnam() or platform-independent temp directory.
-        testFileName = "/tmp/test_addresses.txt";
+        // Create a temporary test file using a simple timestamp-based name
+        // This avoids deprecated std::tmpnam and works cross-platform
+        std::srand(static_cast<unsigned int>(std::time(nullptr)));
+        int randomNum = std::rand();
+        testFileName = "test_addresses_" + std::to_string(randomNum) + ".txt";
     }
 
     void TearDown() override {
