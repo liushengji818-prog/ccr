@@ -1,0 +1,10 @@
+---
+# Clang-Format configuration for Profanity project
+# Based on Google style with project-specific customizations
+BasedOnStyle: Google
+IndentWidth: 4
+ColumnLimit: 120
+AllowShortFunctionsOnASingleLine: Empty
+AllowShortIfStatementsOnASingleLine: false
+AllowShortLoopsOnASingleLine: false  # Project-specific: disallow short loops on single line
+PointerAlignment: Left

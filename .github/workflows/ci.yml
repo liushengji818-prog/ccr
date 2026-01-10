@@ -1,0 +1,174 @@
+name: CI Build and Analysis
+
+on:
+  push:
+    branches: [main, master, develop]
+  pull_request:
+    branches: [main, master, develop]
+
+jobs:
+
+  build-and-test:
+    name: Build and Test on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, ubuntu-20.04]
+        build_type: [Release, Debug]
+        include:
+          - os: ubuntu-latest
+            opencl_package: ocl-icd-opencl-dev
+          - os: ubuntu-20.04
+            opencl_package: ocl-icd-opencl-dev
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            build-essential \
+            cmake \
+            ${{ matrix.opencl_package }} \
+            libcurl4-openssl-dev \
+            ccache
+
+      - name: Setup ccache
+        uses: actions/cache@v4
+        with:
+          path: ~/.ccache
+          key: ${{ runner.os }}-ccache-${{ matrix.build_type }}-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-ccache-${{ matrix.build_type }}-
+            ${{ runner.os }}-ccache-
+
+      - name: Configure CMake
+        run: |
+          mkdir -p build
+          cd build
+          cmake .. \
+            -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} \
+            -DBUILD_TESTING=ON \
+            -DENABLE_HIGH_PERFORMANCE=OFF \
+            -DCMAKE_C_COMPILER_LAUNCHER=ccache \
+            -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
+
+      - name: Build
+        run: cd build && cmake --build . --parallel 8
+
+      - name: Run tests
+        run: cd build && ctest --output-on-failure --parallel 8
+
+      - name: Upload test results
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results-${{ matrix.os }}-${{ matrix.build_type }}
+          path: |
+            build/Testing/Temporary/LastTest.log
+            build/**/*.log
+
+  build-high-performance:
+    name: High Performance Build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential cmake ocl-icd-opencl-dev libcurl4-openssl-dev
+      - run: |
+          mkdir -p build && cd build
+          cmake .. -DCMAKE_BUILD_TYPE=Release -DENABLE_HIGH_PERFORMANCE=ON -DBUILD_TESTING=ON
+      - run: cd build && cmake --build . --parallel 8
+      - run: cd build && ctest --output-on-failure --parallel 8
+
+  build-with-profiling:
+    name: Profiling Build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential cmake ocl-icd-opencl-dev libcurl4-openssl-dev
+      - run: |
+          mkdir -p build && cd build
+          cmake .. -DCMAKE_BUILD_TYPE=Release -DENABLE_PROFILING=ON -DBUILD_TESTING=OFF
+      - run: cd build && cmake --build . --parallel 8
+
+  code-quality:
+    name: Code Quality Checks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            build-essential cmake clang-tidy cppcheck \
+            ocl-icd-opencl-dev libcurl4-openssl-dev
+      - run: |
+          mkdir -p build && cd build
+          cmake .. -DCMAKE_BUILD_TYPE=Debug -DBUILD_TESTING=OFF
+      - name: Run cppcheck
+        continue-on-error: true
+        run: |
+          cppcheck --enable=all --inconclusive --std=c++11 \
+            --suppress=missingIncludeSystem \
+            --suppress=unusedFunction \
+            --suppress=unmatchedSuppression \
+            -I include -I src \
+            src/ 2> cppcheck-report.txt
+          cat cppcheck-report.txt
+      - name: Upload cppcheck report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: code-quality-reports
+          path: cppcheck-report.txt
+
+  format-check:
+    name: Code Formatting Check
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - run: sudo apt-get update && sudo apt-get install -y clang-format
+      - run: |
+          find src include -type f \( -name '*.cpp' -o -name '*.hpp' -o -name '*.h' \) \
+            -exec clang-format --dry-run {} + || echo "::warning::Code formatting issues found. Please run clang-format to fix them."
+
+  codeql:
+    name: CodeQL Security Analysis
+    runs-on: ubuntu-latest
+    permissions:
+      security-events: write
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: github/codeql-action/init@v3
+        with:
+          languages: cpp
+      - run: |
+          sudo apt-get update
+          sudo apt-get install -y libcurl4-openssl-dev ocl-icd-opencl-dev
+      - run: |
+          cmake -B build -S .
+          cmake --build build
+      - uses: github/codeql-action/analyze@v3
+
+  build-makefile:
+    name: Makefile Build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential ocl-icd-opencl-dev libcurl4-openssl-dev
+      - run: make parallel
+      - run: make test
+      - run: ./test_address_validity

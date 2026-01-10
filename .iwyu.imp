@@ -1,0 +1,16 @@
+[
+  # Include-What-You-Use mapping file for this project
+  
+  # Standard library mappings
+  { include: ["<bits/std_abs.h>", "private", "<cmath>", "public"] },
+  { include: ["<bits/stdint-uintn.h>", "private", "<cstdint>", "public"] },
+  { include: ["<bits/types/time_t.h>", "private", "<ctime>", "public"] },
+  
+  # OpenCL mappings
+  { include: ["@<CL/.*>", "public", "<CL/cl.h>", "public"] },
+  { include: ["@<OpenCL/.*>", "public", "<OpenCL/cl.h>", "public"] },
+  
+  # Project-specific mappings
+  { include: ["\"types.hpp\"", "private", "\"Dispatcher.hpp\"", "public"] },
+  { include: ["\"CLMemory.hpp\"", "private", "\"Dispatcher.hpp\"", "public"] }
+]

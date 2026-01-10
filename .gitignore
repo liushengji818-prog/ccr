@@ -1,0 +1,41 @@
+# Build artifacts
+build/
+*.o
+*.a
+*.so
+*.dylib
+profanity.x64
+test_address_validity
+test_mode
+test_dispatcher
+test_precomp
+bench_core
+
+# Profiling outputs
+gmon.out
+perf.data
+perf_report.txt
+profile_report.txt
+flamegraph.svg
+*.gcda
+*.gcno
+*.gcov
+callgrind.out.*
+
+# CMake
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+Makefile
+CTestTestfile.cmake
+Testing/
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS
+_codeql_build_dir/
+_codeql_detected_source_root
