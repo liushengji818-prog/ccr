@@ -303,13 +303,13 @@ static void printResult(cl_ulong4 seed, cl_ulong round, result r, cl_uchar score
 	std::cout << strVT100ClearLine << "  Time: " << std::setw(5) << seconds << "s Score: " << std::setw(2) << (int) score << " Private: 0x" << strPrivate << ' ';
 
 	std::cout << mode.transformName();
-	std::cout << ": " << strTronBase58 << " (hex: " << strTronHex << ")" << std::endl;
+	std::cout << ": " << strTronBase58 << " (hex: 0x" << strTronHex << ")" << std::endl;
 
 	// print to file
 	std::ofstream outFile("output.txt", std::ios::app);
 	outFile << "Time: " << std::setw(5) << seconds << "s Score: " << std::setw(2) << (int) score << " Private: 0x" << strPrivate << ' ';
 	outFile << mode.transformName();
-	outFile << ": " << strTronBase58 << " (hex: " << strTronHex << ")" << std::endl;
+	outFile << ": " << strTronBase58 << " (hex: 0x" << strTronHex << ")" << std::endl;
 	outFile.close();
 }
 
